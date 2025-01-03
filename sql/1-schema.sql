@@ -154,6 +154,17 @@ CREATE TABLE chairs_ex
 )
   COMMENT = '椅子情報テーブルの追加情報';
 
+DROP TABLE IF EXISTS rides_ex;
+CREATE TABLE rides_ex
+(
+  id                   VARCHAR(26) NOT NULL COMMENT 'ライドID',
+  status               ENUM ('MATCHING', 'ENROUTE', 'PICKUP', 'CARRYING', 'ARRIVED', 'COMPLETED') NOT NULL COMMENT '状態',
+  status_count         INTEGER  NOT NULL,
+  status_updated_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '更新日時',
+  PRIMARY KEY (id)
+)
+  COMMENT = 'ライド情報テーブルの追加情報';
+
 DELIMITER //
 
 CREATE TRIGGER after_chair_location_insert
@@ -168,6 +179,18 @@ BEGIN
     longitude = NEW.longitude,
     location_count = location_count + 1,
     total_distance_updated_at = NEW.created_at;
+END;
+
+CREATE TRIGGER after_ride_statuses_insert
+AFTER INSERT ON ride_statuses
+FOR EACH ROW
+BEGIN
+  INSERT INTO rides_ex (id, status, status_count, status_updated_at)
+  VALUES (NEW.ride_id, NEW.status, 1, NEW.created_at)
+  ON DUPLICATE KEY UPDATE
+    status = NEW.status,
+    status_count = status_count + 1,
+    status_updated_at = NEW.created_at;
 END;
 
 //
