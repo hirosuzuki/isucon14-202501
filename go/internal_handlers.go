@@ -34,7 +34,7 @@ type Chairx struct {
 }
 
 type MatchItem struct {
-	Proirity       int
+	Priority       int
 	RideID         string
 	RideArea       int
 	ChairID        string
@@ -44,6 +44,8 @@ type MatchItem struct {
 	DriveDistance  int
 	Speed          int
 }
+
+const AreaThreshold = 200
 
 // このAPIをインスタンス内から一定間隔で叩かせることで、椅子とライドをマッチングさせる
 func internalGetMatching(w http.ResponseWriter, r *http.Request) {
@@ -76,9 +78,9 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		if chair.Latitude == nil || chair.Longitude == nil {
 			continue
 		}
-		chairArea := *chair.Latitude < 200
+		chairArea := *chair.Latitude < AreaThreshold
 		for _, ride := range *rides {
-			rideArea := ride.PickupLatitude < 200
+			rideArea := ride.PickupLatitude < AreaThreshold
 			if rideArea != chairArea {
 				continue
 			}
@@ -91,13 +93,13 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 				PickupDistance: pickupDistance,
 				DriveDistance:  driveDistance,
 				Speed:          speed,
-				Proirity:       (pickupDistance + driveDistance) / speed,
+				Priority:       (pickupDistance + driveDistance) / speed,
 			})
 		}
 	}
 
 	sort.Slice(matchItems, func(i, j int) bool {
-		return matchItems[i].Proirity < matchItems[j].Proirity
+		return matchItems[i].Priority < matchItems[j].Priority
 	})
 
 	matchedRideIDs := make(map[string]bool)
@@ -108,7 +110,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		}
 		matchedRideIDs[matchItem.RideID] = true
 		matchedChairIDs[matchItem.ChairID] = true
-		slog.Info(fmt.Sprintf("Matching ride %s with chair %s / Prio %d", matchItem.RideID, matchItem.ChairID, matchItem.Proirity))
+		slog.Info(fmt.Sprintf("Matching ride %s with chair %s / Prio %d", matchItem.RideID, matchItem.ChairID, matchItem.Priority))
 		if _, err := db.ExecContext(ctx, "UPDATE rides SET chair_id = ? WHERE id = ?", matchItem.ChairID, matchItem.RideID); err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
