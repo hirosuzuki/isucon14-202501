@@ -160,6 +160,8 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	signalCondByID(chair.ID)
+
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
 		RecordedAt: location.CreatedAt.UnixMilli(),
 	})
@@ -192,7 +194,7 @@ WHERE ride_statuses.ride_id = rides.id AND users.id = rides.user_id
 AND chair_sent_at IS NULL
 AND chair_id = ?
 ORDER BY rides.id
-LIMIT 1`
+`
 
 const chairGetNotificationLatestSQL = `
 SELECT rides_with_status.status,
@@ -281,6 +283,8 @@ func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 				Status: rideUserStatus.Status,
 			}
 
+			// slog.Info(fmt.Sprintf("sending notification: %v", respData))
+
 			b, err := json.Marshal(respData)
 			if err != nil {
 				slog.Error("failed to marshal response", err)
@@ -290,7 +294,7 @@ func chairGetNotification(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("\n"))
 			w.(http.Flusher).Flush()
 		}
-		time.Sleep(30 * time.Millisecond)
+		waitCondWithTimeoutByID(chair.ID, 30000*time.Millisecond)
 	}
 
 }
@@ -359,6 +363,8 @@ func chairPostRideStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	signalCondByID(chair.ID)
 
 	w.WriteHeader(http.StatusNoContent)
 }
