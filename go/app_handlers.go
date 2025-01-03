@@ -203,7 +203,7 @@ func appGetRides(w http.ResponseWriter, r *http.Request) {
 	if err := tx.SelectContext(
 		ctx,
 		&rides,
-		`SELECT * FROM rides WHERE user_id = ? ORDER BY created_at DESC`,
+		`SELECT * FROM rides WHERE user_id = ? ORDER BY id DESC`,
 		user.ID,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
@@ -285,7 +285,7 @@ type executableGet interface {
 
 func getLatestRideStatus(ctx context.Context, tx executableGet, rideID string) (string, error) {
 	status := ""
-	if err := tx.GetContext(ctx, &status, `SELECT status FROM ride_statuses WHERE ride_id = ? ORDER BY created_at DESC LIMIT 1`, rideID); err != nil {
+	if err := tx.GetContext(ctx, &status, `SELECT status FROM ride_statuses WHERE ride_id = ? ORDER BY id DESC LIMIT 1`, rideID); err != nil {
 		return "", err
 	}
 	return status, nil
@@ -607,7 +607,7 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 
 	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, paymentToken.Token, paymentGatewayRequest, func() ([]Ride, error) {
 		rides := []Ride{}
-		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE user_id = ? ORDER BY created_at ASC`, ride.UserID); err != nil {
+		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE user_id = ? ORDER BY id ASC`, ride.UserID); err != nil {
 			return nil, err
 		}
 		return rides, nil
@@ -670,7 +670,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	ride := &Ride{}
-	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`, user.ID); err != nil {
+	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE user_id = ? ORDER BY id DESC LIMIT 1`, user.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			writeJSON(w, http.StatusOK, &appGetNotificationResponse{
 				RetryAfterMs: 30,
@@ -683,7 +683,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 
 	yetSentRideStatus := RideStatus{}
 	status := ""
-	if err := tx.GetContext(ctx, &yetSentRideStatus, `SELECT * FROM ride_statuses WHERE ride_id = ? AND app_sent_at IS NULL ORDER BY created_at ASC LIMIT 1`, ride.ID); err != nil {
+	if err := tx.GetContext(ctx, &yetSentRideStatus, `SELECT * FROM ride_statuses WHERE ride_id = ? AND app_sent_at IS NULL ORDER BY id ASC LIMIT 1`, ride.ID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			status, err = getLatestRideStatus(ctx, tx, ride.ID)
 			if err != nil {
@@ -781,7 +781,7 @@ func getChairStats(ctx context.Context, tx *sqlx.Tx, chairID string) (appGetNoti
 		err = tx.SelectContext(
 			ctx,
 			&rideStatuses,
-			`SELECT * FROM ride_statuses WHERE ride_id = ? ORDER BY created_at`,
+			`SELECT * FROM ride_statuses WHERE ride_id = ? ORDER BY id`,
 			ride.ID,
 		)
 		if err != nil {
@@ -889,7 +889,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		rides := []*Ride{}
-		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY created_at DESC`, chair.ID); err != nil {
+		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY id DESC`, chair.ID); err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -916,7 +916,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		err = tx.GetContext(
 			ctx,
 			chairLocation,
-			`SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY created_at DESC LIMIT 1`,
+			`SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY id DESC LIMIT 1`,
 			chair.ID,
 		)
 		if err != nil {
