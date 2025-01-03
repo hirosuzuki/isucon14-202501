@@ -19,6 +19,7 @@ deploy-conf:
 	rsync -v etc/mysql/my.cnf root@isucon1:/etc/mysql/my.cnf
 	rsync -v etc/systemd/system/isuride-go.service root@isucon1:/etc/systemd/system/isuride-go.service
 	rsync -v etc/systemd/system/isuride-matcher.service root@isucon1:/etc/systemd/system/isuride-matcher.service
+	ssh root@isucon1 sysctl -p
 	ssh root@isucon1 systemctl daemon-reload
 	ssh root@isucon1 systemctl restart mysql
 	ssh root@isucon1 systemctl restart nginx
