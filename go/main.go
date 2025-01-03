@@ -173,6 +173,17 @@ func writeError(w http.ResponseWriter, statusCode int, err error) {
 	w.Write(buf)
 
 	slog.Error("error response wrote", err)
+
+	for i := 1; ; i++ {
+		pt, file, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		funcName := runtime.FuncForPC(pt).Name()
+		if strings.HasPrefix(funcName, "main.") {
+			slog.Error(fmt.Sprintf("file: %s:%d (%v)\n", file, line, funcName))
+		}
+	}
 }
 
 func secureRandomStr(b int) string {
