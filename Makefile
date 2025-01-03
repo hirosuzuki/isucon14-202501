@@ -21,3 +21,15 @@ deploy-conf:
 	ssh root@isucon1 systemctl restart isuride-go
 	ssh root@isucon1 systemctl restart isuride-matcher
 
+install-percona-toolkit:
+	sudo apt install -y percona-toolkit
+
+enable-mysql-slowlog:
+	ssh isucon1 sudo truncate -c -s 0 /tmp/slow.log
+	ssh isucon1 'sudo mysql -e "SET GLOBAL long_query_time = 0; SET GLOBAL slow_query_log = ON; SET GLOBAL slow_query_log_file = \"/tmp/slow.log\";"'
+
+disable-mysql-slowlog:
+	ssh isucon1 'sudo mysql -e "SET GLOBAL slow_query_log = OFF"'
+
+get-mysql-slowlog:
+	ssh root@isucon1 gzip -c /tmp/slow.log | gzip -dc | pt-query-digest > mysql.digest.txt
