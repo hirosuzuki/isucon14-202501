@@ -201,3 +201,8 @@ DELIMITER ;
 
 DROP VIEW IF EXISTS rides_with_status;
 CREATE VIEW rides_with_status AS SELECT rides.*, rides_ex.status, rides_ex.status_updated_at FROM rides LEFT JOIN rides_ex ON rides.id = rides_ex.id;
+
+DROP VIEW IF EXISTS chairs_with_location;
+CREATE VIEW chairs_with_location AS
+SELECT chairs.*, chairs_ex.latitude, chairs_ex.longitude, chairs_ex.location_count, chairs_ex.total_distance
+FROM chairs LEFT JOIN chairs_ex ON chairs.id = chairs_ex.id;
