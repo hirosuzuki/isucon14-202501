@@ -7,6 +7,8 @@ Requires=mysql.service
 [Service]
 WorkingDirectory=/home/isucon/webapp/go
 EnvironmentFile=/home/isucon/env.sh
+StandardOutput=append:/tmp/isuapp.log
+StandardError=append:/tmp/isuapp-err.log
 
 User=isucon
 Group=isucon
