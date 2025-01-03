@@ -196,3 +196,8 @@ END;
 //
 
 DELIMITER ;
+
+--
+
+DROP VIEW IF EXISTS rides_with_status;
+CREATE VIEW rides_with_status AS SELECT rides.*, rides_ex.status, rides_ex.status_updated_at FROM rides LEFT JOIN rides_ex ON rides.id = rides_ex.id;
