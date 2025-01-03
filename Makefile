@@ -44,3 +44,6 @@ install-kataribe:
 
 exec-kataribe:
 	ssh root@isucon1 gzip -c /var/log/nginx/access.log | gzip -dc | kataribe > kataribe.txt
+
+install-redis:
+	ssh root@isucon1 sudo apt install -y redis-server
