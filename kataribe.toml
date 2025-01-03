@@ -99,6 +99,30 @@ duration_index = 10
 #regexp = '^(GET|HEAD) /images/'
 #name = 'GET /images/*'
 
+[[bundle]]
+regexp = '^GET /api/app/nearby-chairs\?.+ HTTP/1.1$'
+name = 'GET /api/app/nearby-chairs?************ HTTP/1.1'
+
+[[bundle]]
+regexp = '^GET /api/owner/sales\?.+ HTTP/1.1$'
+name = 'GET /api/owner/sales?************* HTTP/1.1'
+
+[[bundle]]
+regexp = '^POST /api/chair/rides/.+/status HTTP/1.1$'
+name = 'POST /api/chair/rides/************/status HTTP/1.1'
+
+[[bundle]]
+regexp = '^POST /api/app/rides/.+/evaluation HTTP/1.1$'
+name = 'POST /api/app/rides/*************/evaluation HTTP/1.1'
+
+[[bundle]]
+regexp = '^GET /assets/.+ HTTP/1.1$'
+name = 'GET /assets/********** HTTP/1.1'
+
+[[bundle]]
+regexp = '^GET /images/.+ HTTP/1.1$'
+name = 'GET /images/********** HTTP/1.1'
+
 ################################################################################
 # Replace
 ################################################################################
