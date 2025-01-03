@@ -138,3 +138,38 @@ CREATE TABLE coupons
   PRIMARY KEY (user_id, code)
 )
   COMMENT 'クーポンテーブル';
+
+-- 拡張テーブル
+
+DROP TABLE IF EXISTS chairs_ex;
+CREATE TABLE chairs_ex
+(
+  id                           VARCHAR(26)  NOT NULL COMMENT '椅子ID',
+  latitude                     INTEGER      NOT NULL COMMENT '経度',
+  longitude                    INTEGER      NOT NULL COMMENT '緯度',
+  location_count               INTEGER      NOT NULL,
+  total_distance_updated_at    DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '更新日時',
+  total_distance               INTEGER      NOT NULL COMMENT '緯度',
+  PRIMARY KEY (id)
+)
+  COMMENT = '椅子情報テーブルの追加情報';
+
+DELIMITER //
+
+CREATE TRIGGER after_chair_location_insert
+AFTER INSERT ON chair_locations
+FOR EACH ROW
+BEGIN
+  INSERT INTO chairs_ex (id, latitude, longitude, location_count, total_distance_updated_at, total_distance)
+  VALUES (NEW.chair_id, NEW.latitude, NEW.longitude, 1, NEW.created_at, 0)
+  ON DUPLICATE KEY UPDATE
+    total_distance = total_distance + ABS(NEW.latitude - latitude) + ABS(NEW.longitude - longitude),
+    latitude = NEW.latitude,
+    longitude = NEW.longitude,
+    location_count = location_count + 1,
+    total_distance_updated_at = NEW.created_at;
+END;
+
+//
+
+DELIMITER ;
