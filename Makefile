@@ -33,3 +33,9 @@ disable-mysql-slowlog:
 
 get-mysql-slowlog:
 	ssh root@isucon1 gzip -c /tmp/slow.log | gzip -dc | pt-query-digest > mysql.digest.txt
+
+install-kataribe:
+	go install github.com/matsuu/kataribe@latest
+
+exec-kataribe:
+	ssh root@isucon1 gzip -c /var/log/nginx/access.log | gzip -dc | kataribe > kataribe.txt
