@@ -10,6 +10,7 @@ deploy-app:
 	ssh isucon1 sudo truncate -c -s 0 /tmp/isuapp-err.log
 	ssh isucon1 sudo truncate -c -s 0 /tmp/isuapp.log
 	ssh root@isucon1 systemctl restart isuride-go
+	ssh root@isucon1 systemctl restart isuride-matcher
 
 deploy-conf:
 	rsync -v etc/security/limits.conf root@isucon1:/etc/security/limits.conf
