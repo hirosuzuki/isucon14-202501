@@ -5,6 +5,10 @@ deploy-app:
 	rsync -av go/isuride isucon1:/home/isucon/webapp/go/isuride
 	rsync -av env.sh isucon1:/home/isucon/env.sh
 	rsync -av sql/1-schema.sql isucon1:/home/isucon/webapp/sql/1-schema.sql
+	ssh isucon1 sudo truncate -c -s 0 /var/log/nginx/access.log
+	ssh isucon1 sudo truncate -c -s 0 /tmp/slow.log
+	ssh isucon1 sudo truncate -c -s 0 /tmp/isuapp-err.log
+	ssh isucon1 sudo truncate -c -s 0 /tmp/isuapp.log
 	ssh root@isucon1 systemctl restart isuride-go
 
 deploy-conf:
