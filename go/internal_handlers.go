@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"time"
 )
 
 var chairsx_sql = `
@@ -73,6 +74,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	timeLimit := time.Now().Add(-15 * time.Second)
 	var matchItems = make([]MatchItem, 0)
 	for _, chair := range *chairsx {
 		if chair.Latitude == nil || chair.Longitude == nil {
@@ -81,7 +83,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		chairArea := *chair.Latitude < AreaThreshold
 		for _, ride := range *rides {
 			rideArea := ride.PickupLatitude < AreaThreshold
-			if rideArea != chairArea {
+			if rideArea != chairArea && ride.CreatedAt.After(timeLimit) {
 				continue
 			}
 			driveDistance := abs(ride.PickupLatitude-ride.DestinationLatitude) + abs(ride.PickupLongitude-ride.DestinationLongitude)
