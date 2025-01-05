@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"sync"
 )
 
 func appAuthMiddleware(next http.Handler) http.Handler {
@@ -56,6 +57,8 @@ func ownerAuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+var chairCache sync.Map
+
 func chairAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -65,18 +68,22 @@ func chairAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		accessToken := c.Value
-		chair := &Chair{}
-		err = db.GetContext(ctx, chair, "SELECT * FROM chairs WHERE access_token = ?", accessToken)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+		if v, ok := chairCache.Load(accessToken); ok {
+			ctx = context.WithValue(ctx, "chair", v)
+		} else {
+			chair := &Chair{}
+			err = db.GetContext(ctx, chair, "SELECT * FROM chairs WHERE access_token = ?", accessToken)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+					return
+				}
+				writeError(w, http.StatusInternalServerError, err)
 				return
 			}
-			writeError(w, http.StatusInternalServerError, err)
-			return
+			chairCache.Store(accessToken, chair)
+			ctx = context.WithValue(ctx, "chair", chair)
 		}
-
-		ctx = context.WithValue(ctx, "chair", chair)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
