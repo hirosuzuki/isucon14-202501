@@ -166,6 +166,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 
 	if statusChanged {
 		signalCondByID(chair.ID)
+		signalCondByID(ride.UserID)
 	}
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
@@ -376,6 +377,7 @@ func chairPostRideStatus(w http.ResponseWriter, r *http.Request) {
 
 	if statusChanged {
 		signalCondByID(chair.ID)
+		signalCondByID(ride.UserID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
