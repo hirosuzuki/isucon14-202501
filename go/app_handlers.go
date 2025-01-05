@@ -658,8 +658,15 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 	respData := appGetNotificationResponseData{}
 
 	createRespData := func(userID string) error {
+		ctx := context.Background()
+		tx, err := db.Beginx()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+
 		ride := Ride{}
-		if err := db.GetContext(ctx, &ride, `SELECT * FROM rides_with_status WHERE user_id = ? ORDER BY id DESC LIMIT 1`, userID); err != nil {
+		if err := tx.GetContext(ctx, &ride, `SELECT * FROM rides_with_status WHERE user_id = ? ORDER BY id DESC LIMIT 1`, userID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}
@@ -681,10 +688,16 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 			UpdateAt:  ride.UpdatedAt.UnixMilli(),
 		}
 
+		fare, err := calculateDiscountedFare(ctx, tx, user.ID, &ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
+		if err != nil {
+			return err
+		}
+		respData.Fare = fare
+
 		return nil
 	}
 
-	updateRespData := func(updateChair bool, updateChairStats bool, updateFare bool, reloadRide bool) error {
+	updateRespData := func() error {
 		ctx := context.Background()
 		tx, err := db.Beginx()
 		if err != nil {
@@ -700,15 +713,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		if updateFare {
-			fare, err := calculateDiscountedFare(ctx, tx, user.ID, &ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
-			if err != nil {
-				return err
-			}
-			respData.Fare = fare
-		}
-
-		if updateChair && ride.ChairID.Valid {
+		if ride.ChairID.Valid {
 			chair := &Chair{}
 			if err := tx.GetContext(ctx, chair, `SELECT * FROM chairs WHERE id = ?`, ride.ChairID); err != nil {
 				return err
@@ -720,7 +725,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if updateChairStats && ride.ChairID.Valid {
+		if ride.ChairID.Valid {
 			stats, err := getChairStats(ctx, tx, ride.ChairID.String)
 			if err != nil {
 				return err
@@ -732,30 +737,19 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	checkNotify := func(rideID string) (string, error) {
-		ctx := context.Background()
-		tx, err := db.Beginx()
-		if err != nil {
-			return "", err
-		}
-		defer tx.Rollback()
-
-		yetSentRideStatus := RideStatus{}
-		if err := tx.GetContext(ctx, &yetSentRideStatus, `SELECT * FROM ride_statuses WHERE ride_id = ? AND app_sent_at IS NULL ORDER BY id ASC LIMIT 1`, rideID); err != nil {
+		rideStatus := RideStatus{}
+		if err := db.GetContext(ctx, &rideStatus, `SELECT * FROM ride_statuses WHERE ride_id = ? AND app_sent_at IS NULL ORDER BY id ASC LIMIT 1`, rideID); err != nil {
 			if !errors.Is(err, sql.ErrNoRows) {
 				return "", err
 			}
 			return "", nil
 		}
 
-		if _, err := tx.ExecContext(ctx, `UPDATE ride_statuses SET app_sent_at = CURRENT_TIMESTAMP(6) WHERE id = ?`, yetSentRideStatus.ID); err != nil {
+		if _, err := db.ExecContext(ctx, `UPDATE ride_statuses SET app_sent_at = CURRENT_TIMESTAMP(6) WHERE id = ?`, rideStatus.ID); err != nil {
 			return "", err
 		}
 
-		if err := tx.Commit(); err != nil {
-			return "", err
-		}
-
-		return yetSentRideStatus.Status, nil
+		return rideStatus.Status, nil
 	}
 
 	err := createRespData(user.ID)
@@ -783,7 +777,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if status != lastSentStatus {
-			err = updateRespData(true, true, true, true)
+			err = updateRespData()
 			if err != nil {
 				slog.Error("failed to get ride response data", err)
 				return
@@ -796,19 +790,20 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 			b, err := json.Marshal(respData)
 			if err != nil {
 				slog.Error("failed to marshal response", err)
+				return
 			}
 			w.Write([]byte("data: "))
 			w.Write(b)
 			w.Write([]byte("\n"))
 			w.(http.Flusher).Flush()
-			// slog.Info("sent notification", respData)
+
 			lastSentStatus = respData.Status
 		}
 
 		if respData.Status == "COMPLETED" {
 			return
 		}
-		// time.Sleep(100 * time.Millisecond)
+
 		waitCondWithTimeoutByID(user.ID, 10000*time.Millisecond)
 	}
 
