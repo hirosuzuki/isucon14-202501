@@ -37,6 +37,7 @@ type Chairx struct {
 type MatchItem struct {
 	Priority       int
 	RideID         string
+	UserID         string
 	RideArea       int
 	ChairID        string
 	ChairArea      int
@@ -91,6 +92,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 			speed := chair.Speed
 			matchItems = append(matchItems, MatchItem{
 				RideID:         ride.ID,
+				UserID:         ride.UserID,
 				ChairID:        chair.ID,
 				PickupDistance: pickupDistance,
 				DriveDistance:  driveDistance,
@@ -118,7 +120,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		signalCondByID(matchItem.ChairID)
-
+		signalCondByID(matchItem.UserID)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
