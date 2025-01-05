@@ -75,7 +75,8 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeLimit := time.Now().Add(-15 * time.Second)
+	now := time.Now()
+	timeLimit := now.Add(-20 * time.Second)
 	var matchItems = make([]MatchItem, 0)
 	for _, chair := range *chairsx {
 		if chair.Latitude == nil || chair.Longitude == nil {
@@ -90,6 +91,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 			driveDistance := abs(ride.PickupLatitude-ride.DestinationLatitude) + abs(ride.PickupLongitude-ride.DestinationLongitude)
 			pickupDistance := abs(ride.PickupLatitude-*chair.Latitude) + abs(ride.PickupLongitude-*chair.Longitude)
 			speed := chair.Speed
+			diffSecond := int(now.Sub(ride.CreatedAt).Seconds())
 			matchItems = append(matchItems, MatchItem{
 				RideID:         ride.ID,
 				UserID:         ride.UserID,
@@ -97,7 +99,7 @@ func internalGetMatching(w http.ResponseWriter, r *http.Request) {
 				PickupDistance: pickupDistance,
 				DriveDistance:  driveDistance,
 				Speed:          speed,
-				Priority:       (pickupDistance + driveDistance) / speed,
+				Priority:       (pickupDistance+driveDistance)/speed - diffSecond,
 			})
 		}
 	}
